@@ -102,6 +102,29 @@ async function captureInitialTestData() {
 }
 
 /**
+ * mysql2 parses JSON columns into arrays and objects. Knex then renders a JS
+ * array as an empty SQL slot (`values (, ...)`), so the INSERT is rejected
+ * after the table was cleared. Postgres and SQLite accept those values.
+ */
+const rowsForMysqlInsert = (rows: Record<string, unknown>[]) =>
+  rows.map((row) => {
+    const copy: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(row)) {
+      const isJson =
+        Array.isArray(value) ||
+        (typeof value === 'object' &&
+          value !== null &&
+          !(value instanceof Date) &&
+          !Buffer.isBuffer(value));
+
+      copy[key] = isJson ? JSON.stringify(value) : value;
+    }
+
+    return copy;
+  });
+
+/**
  * Restores the tables written to since the last reset. Restoring every table took about 1.4 s
  * on SQLite, most of it re-inserting rows no test had touched.
  */
@@ -116,6 +139,8 @@ async function resetTestDatabase() {
 
   // Use Strapi's built-in schema update mechanism to disable constraints (e.g. foreign key constraints)
   await strapi.db.dialect.startSchemaUpdate();
+  const client = strapi.db.connection.client.config.client;
+  const isMysql = client === 'mysql' || client === 'mysql2';
 
   try {
     for (const tableName of tablesToReset) {
@@ -126,7 +151,8 @@ async function resetTestDatabase() {
         // Restore initial data if any
         const initialData = initialTestData[tableName];
         if (initialData && initialData.length > 0) {
-          await strapi.db.connection(tableName).insert(initialData);
+          const rows = isMysql ? rowsForMysqlInsert(initialData) : initialData;
+          await strapi.db.connection(tableName).insert(rows);
         }
       } catch (error) {
         console.warn(`Could not reset table ${tableName}:`, error.message);
