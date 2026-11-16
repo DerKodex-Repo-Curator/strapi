@@ -22,7 +22,6 @@ const databases = {
       database: 'strapi_test',
       username: 'strapi',
       password: 'strapi',
-      schema: 'myschema',
     },
   },
   mysql: {
