@@ -40,7 +40,7 @@ yarn nx run @strapi/tests-e2e:test      # also builds the admin of its app, abou
   reset runs before the file's `beforeAll`, and never before its `afterAll`, which sees what the
   tests wrote. The restore needs the snapshot's schema: specs that change the schema
   (Content-Type Builder) aren't supported yet, and will come with the first such spec.
-- **Edition** (RFC D6): `STRAPI_TEST_EDITION=ce` (default) or `ee`, read by one module
+- **Edition**: `STRAPI_TEST_EDITION=ce` (default) or `ee`, read by one module
   (`shared/src/edition`) for every suite. `ee` needs `STRAPI_LICENSE`; without it, or when
   Strapi rejects the license and boots as CE, the run fails instead of testing CE. A CE run
   removes any license from the app env. See [Edition](#edition).
